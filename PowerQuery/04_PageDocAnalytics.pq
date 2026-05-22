@@ -1,11 +1,11 @@
 // ============================================================
 // 04_PageDocAnalytics.pq
-// SharePoint REST + Graph API – Individual Page and Document Analytics
+// Microsoft Graph API – Individual Page and Document Analytics
 //
 // Sources:
-//   SharePoint REST:  GET {siteUrl}/_api/sitepages/pages
-//   Graph API:        GET /v1.0/sites/{id}/drive/items/{itemId}/analytics
-//   Graph API:        GET /v1.0/sites/{id}/lists/{listId}/items?expand=fields,driveItem
+//   Graph API: GET /v1.0/sites/{id}/pages
+//   Graph API: GET /v1.0/sites/{id}/drive/items/{itemId}/analytics
+//   Graph API: GET /v1.0/sites/{id}/lists/{listId}/items?expand=fields,driveItem
 // Scope:   All pages and documents across hub + spoke sites
 // Auth:    Sites.Read.All, Files.Read.All
 // ============================================================
