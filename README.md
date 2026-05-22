@@ -3,6 +3,9 @@
 ## Overview
 This solution delivers a fully parameterized Power BI template (`.pbit`) for Contoso's **News Online** intranet SharePoint Hub-and-Spoke collection. It tracks site usage, page/document engagement, user demographics, content metadata, and social reactions across the entire tenant.
 
+## Dashboard Mockup
+<img width="1794" height="905" alt="Screenshot_22-5-2026_122440_" src="https://github.com/user-attachments/assets/52d981a6-eccc-44ee-88f0-f97997ecb046" />
+
 ---
 
 ## Report Pages
