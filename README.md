@@ -215,7 +215,7 @@ In Power Query Editor:
 - **Direct Query**: Not supported for Graph API reports (must use Import mode)
 - **Scheduled Refresh**: Publish to Power BI Service → Dataset Settings → Scheduled Refresh
 - Recommended refresh: **Daily at 6:00 AM** (Graph API data typically has 24–48 hour latency)
-- For near-real-time: combine with **SharePoint REST analytics** queries (queries 03–07) which have lower latency
+- For near-real-time: queries 03–07 call Graph API endpoints with ~1 hour latency and refresh more frequently than the usage reports
 
 ---
 
@@ -225,10 +225,10 @@ In Power Query Editor:
 |-------|----------|------|---------|
 | SiteOverview | Graph `/reports/getSharePointSiteUsageDetail` | OAuth/App | 24–48 hrs |
 | HubSpokeAnalytics | Graph `/sites/{id}/analytics` | OAuth/App | ~1 hr |
-| PageDocAnalytics | Graph `/sites/{id}/drive/items/{id}/analytics` | OAuth/App | ~1 hr |
-| KeywordMetadata | SharePoint `/_api/search/postquery` | OAuth | Real-time |
+| PageDocAnalytics | Graph `/sites/{id}/pages` + `/sites/{id}/drive/root/children` | OAuth/App | ~1 hr |
+| KeywordMetadata | Graph `/search/query` | OAuth/App | ~1 hr |
 | UserDemographics | Graph `/users` + `/reports/getSharePointActivityUserDetail` | OAuth/App | 24–48 hrs |
-| EngagementAnalytics | SharePoint `/_api/sitepages/pages` + reactions | OAuth | ~1 hr |
+| EngagementAnalytics | Graph `/sites/{id}/lists/Site%20Pages/items` | OAuth/App | ~1 hr |
 | DateTable | Calculated (no external source) | N/A | N/A |
 
 ---
