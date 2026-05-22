@@ -1,0 +1,358 @@
+// ============================================================
+// All_Measures.dax
+// DAX Measures – Contoso News Online SharePoint Analytics
+//
+// BULK IMPORT – Power BI Desktop DAX Query View ONLY:
+//   !! DO NOT run this in DAX Studio – DEFINE MEASURE is query-scoped
+//   !! in DAX Studio and will NOT write measures to the model.
+//
+//   1. In Power BI Desktop, click the DAX Query View icon (left nav bar)
+//   2. Paste the full contents of this file into the editor
+//   3. Click Run (Results pane should show Value: 1)
+//   4. Click "Keep all changes" – this is what writes measures to _Measures
+//   Note: display folders are not set automatically; set them manually
+//         in the Properties pane after import, or leave unset (optional).
+//
+// MANUAL IMPORT (one measure at a time):
+//   Modeling tab → New measure → paste one expression block only
+//   (the DAX expression, not the DEFINE/MEASURE wrapper lines).
+//
+// TABLE ASSIGNMENTS:
+//   All measures → _Measures table (dedicated measure table)
+// ============================================================
+
+DEFINE
+
+// ─────────────────────────────────────────────────────────────
+// SECTION 1 – SITE-LEVEL KPIs  (Display Folder: _SiteKPIs)
+// Base table: SiteOverview
+// ─────────────────────────────────────────────────────────────
+
+MEASURE _Measures[Total Page Views] =
+CALCULATE(
+    SUM( SiteOverview[PageViewCount] ),
+    SiteOverview[IsDeleted] = FALSE()
+)
+
+MEASURE _Measures[Total Visited Pages] =
+CALCULATE(
+    SUM( SiteOverview[VisitedPageCount] ),
+    SiteOverview[IsDeleted] = FALSE()
+)
+
+MEASURE _Measures[Total Active Files] =
+CALCULATE(
+    SUM( SiteOverview[ActiveFileCount] ),
+    SiteOverview[IsDeleted] = FALSE()
+)
+
+MEASURE _Measures[Total Files] =
+CALCULATE(
+    SUM( SiteOverview[FileCount] ),
+    SiteOverview[IsDeleted] = FALSE()
+)
+
+MEASURE _Measures[Active Sites Count] =
+CALCULATE(
+    DISTINCTCOUNT( SiteOverview[SiteId] ),
+    SiteOverview[PageViewCount] > 0
+)
+
+MEASURE _Measures[Hub Page Views] =
+CALCULATE(
+    [Total Page Views],
+    SiteOverview[SiteType] = "Hub"
+)
+
+MEASURE _Measures[Spoke Page Views] =
+CALCULATE(
+    [Total Page Views],
+    SiteOverview[SiteType] = "Spoke"
+)
+
+MEASURE _Measures[Spoke % of Total Views] =
+DIVIDE( [Spoke Page Views], [Total Page Views], 0 )
+
+MEASURE _Measures[Avg Views per Site] =
+AVERAGEX(
+    FILTER( SiteOverview, SiteOverview[PageViewCount] > 0 ),
+    SiteOverview[PageViewCount]
+)
+
+MEASURE _Measures[Storage Used GB] =
+DIVIDE(
+    CALCULATE( SUM( SiteOverview[StorageUsedBytes] ) ),
+    1073741824,   -- bytes → GB
+    0
+)
+
+MEASURE _Measures[Storage Utilization %] =
+DIVIDE(
+    SUM( SiteOverview[StorageUsedBytes] ),
+    SUM( SiteOverview[StorageAllocatedBytes] ),
+    0
+)
+
+MEASURE _Measures[Sites with No Activity] =
+CALCULATE(
+    COUNTROWS( SiteOverview ),
+    SiteOverview[LastActivityDate] = BLANK()
+)
+
+// ─────────────────────────────────────────────────────────────
+// SECTION 2 – PAGE & DOCUMENT KPIs  (Display Folder: _PageKPIs)
+// Base table: PageDocAnalytics
+// ─────────────────────────────────────────────────────────────
+
+MEASURE _Measures[Total Pages] =
+CALCULATE(
+    COUNTROWS( PageDocAnalytics ),
+    PageDocAnalytics[ItemKind] = "Page"
+)
+
+MEASURE _Measures[Total Documents] =
+CALCULATE(
+    COUNTROWS( PageDocAnalytics ),
+    PageDocAnalytics[ItemKind] = "Document"
+)
+
+MEASURE _Measures[Pages Published Last 30 Days] =
+CALCULATE(
+    COUNTROWS( PageDocAnalytics ),
+    PageDocAnalytics[ItemKind] = "Page",
+    PageDocAnalytics[CreatedDateTime] >= TODAY() - 30
+)
+
+MEASURE _Measures[Pages Modified Last 30 Days] =
+CALCULATE(
+    COUNTROWS( PageDocAnalytics ),
+    PageDocAnalytics[LastModifiedDateTime] >= TODAY() - 30
+)
+
+MEASURE _Measures[Pages per Site (Avg)] =
+AVERAGEX(
+    VALUES( PageDocAnalytics[SiteId] ),
+    CALCULATE( COUNTROWS( PageDocAnalytics ),
+               PageDocAnalytics[ItemKind] = "Page" )
+)
+
+// ─────────────────────────────────────────────────────────────
+// SECTION 3 – ENGAGEMENT KPIs  (Display Folder: _EngageKPIs)
+// Base table: EngagementAnalytics
+// ─────────────────────────────────────────────────────────────
+
+MEASURE _Measures[Total Likes] =
+SUM( EngagementAnalytics[TotalLikes] )
+
+MEASURE _Measures[Total Comments] =
+SUM( EngagementAnalytics[TotalComments] )
+
+MEASURE _Measures[Total Engagement Score] =
+SUM( EngagementAnalytics[EngagementScore] )
+
+MEASURE _Measures[Pages with Likes] =
+CALCULATE(
+    COUNTROWS( EngagementAnalytics ),
+    EngagementAnalytics[TotalLikes] > 0
+)
+
+MEASURE _Measures[Pages with Comments] =
+CALCULATE(
+    COUNTROWS( EngagementAnalytics ),
+    EngagementAnalytics[TotalComments] > 0
+)
+
+MEASURE _Measures[Avg Likes per Page] =
+DIVIDE( [Total Likes], COUNTROWS( EngagementAnalytics ), 0 )
+
+MEASURE _Measures[Avg Comments per Page] =
+DIVIDE( [Total Comments], COUNTROWS( EngagementAnalytics ), 0 )
+
+MEASURE _Measures[Top Engaged Site] =
+CALCULATE(
+    FIRSTNONBLANK( EngagementAnalytics[SiteUrl], 1 ),
+    TOPN( 1,
+          SUMMARIZE( EngagementAnalytics,
+                     EngagementAnalytics[SiteUrl],
+                     "_Score", [Total Engagement Score] ),
+          [_Score], DESC )
+)
+
+MEASURE _Measures[High Engagement Page Count] =
+CALCULATE(
+    COUNTROWS( EngagementAnalytics ),
+    EngagementAnalytics[EngagementTier] = "High"
+)
+
+MEASURE _Measures[Engagement Rate] =
+-- % of pages that have at least one like or comment
+DIVIDE(
+    CALCULATE(
+        COUNTROWS( EngagementAnalytics ),
+        EngagementAnalytics[EngagementScore] > 0
+    ),
+    COUNTROWS( EngagementAnalytics ),
+    0
+)
+
+// ─────────────────────────────────────────────────────────────
+// SECTION 4 – USER DEMOGRAPHIC KPIs  (Display Folder: _UserKPIs)
+// Base table: UserDemographics
+// ─────────────────────────────────────────────────────────────
+
+MEASURE _Measures[Total Active Users] =
+CALCULATE(
+    DISTINCTCOUNT( UserDemographics[UPN] ),
+    UserDemographics[PagesVisited] > 0
+)
+
+MEASURE _Measures[Total Pages Visited (All Users)] =
+SUM( UserDemographics[PagesVisited] )
+
+MEASURE _Measures[Total Files Shared Internal] =
+SUM( UserDemographics[FilesSharedInternal] )
+
+MEASURE _Measures[Total Files Shared External] =
+SUM( UserDemographics[FilesSharedExternal] )
+
+MEASURE _Measures[Avg Pages per User] =
+DIVIDE( [Total Pages Visited (All Users)], [Total Active Users], 0 )
+
+MEASURE _Measures[Active Users by Department] =
+-- Slice by UserDemographics[Department] in visuals
+CALCULATE(
+    DISTINCTCOUNT( UserDemographics[UPN] ),
+    UserDemographics[PagesVisited] > 0
+)
+
+MEASURE _Measures[Top Department by Views] =
+CALCULATE(
+    FIRSTNONBLANK( UserDemographics[Department], 1 ),
+    TOPN( 1,
+          SUMMARIZE( UserDemographics,
+                     UserDemographics[Department],
+                     "_Views", [Total Pages Visited (All Users)] ),
+          [_Views], DESC )
+)
+
+MEASURE _Measures[Users with No Recent Activity] =
+CALCULATE(
+    COUNTROWS( UserDemographics ),
+    UserDemographics[PagesVisited] = 0,
+    UserDemographics[FilesViewedEdited] = 0
+)
+
+MEASURE _Measures[Files Synced Total] =
+SUM( UserDemographics[FilesSynced] )
+
+// ─────────────────────────────────────────────────────────────
+// SECTION 5 – KEYWORD / METADATA KPIs  (Display Folder: _MetaKPIs)
+// Base table: KeywordMetadata
+// ─────────────────────────────────────────────────────────────
+
+MEASURE _Measures[Total Content Items (Keyword)] =
+COUNTROWS( KeywordMetadata )
+
+MEASURE _Measures[Total Lifetime Views (Keyword)] =
+SUM( KeywordMetadata[ViewsLifetime] )
+
+MEASURE _Measures[Total Recent Views (Keyword)] =
+SUM( KeywordMetadata[ViewsLast30Days] )
+
+MEASURE _Measures[Avg Lifetime Views per Keyword] =
+AVERAGEX(
+    VALUES( KeywordMetadata[SearchKeyword] ),
+    CALCULATE( [Total Lifetime Views (Keyword)] )
+)
+
+MEASURE _Measures[Top Keyword by Views] =
+CALCULATE(
+    FIRSTNONBLANK( KeywordMetadata[SearchKeyword], 1 ),
+    TOPN( 1,
+          SUMMARIZE( KeywordMetadata,
+                     KeywordMetadata[SearchKeyword],
+                     "_Views", [Total Lifetime Views (Keyword)] ),
+          [_Views], DESC )
+)
+
+MEASURE _Measures[Content Items with No Views] =
+CALCULATE(
+    COUNTROWS( KeywordMetadata ),
+    KeywordMetadata[ViewsLifetime] = 0
+       || ISBLANK( KeywordMetadata[ViewsLifetime] )
+)
+
+// ─────────────────────────────────────────────────────────────
+// SECTION 6 – TREND & TIME INTELLIGENCE  (Display Folder: _TrendKPIs)
+// Requires DateTable marked as Date Table in Power BI model
+// ─────────────────────────────────────────────────────────────
+
+MEASURE _Measures[Page Views MoM % Change] =
+VAR CurrentMonth = [Total Page Views]
+VAR PriorMonth =
+    CALCULATE(
+        [Total Page Views],
+        DATEADD( DateTable[Date], -1, MONTH )
+    )
+RETURN
+    DIVIDE( CurrentMonth - PriorMonth, PriorMonth, BLANK() )
+
+MEASURE _Measures[Page Views YTD] =
+TOTALYTD( [Total Page Views], DateTable[Date] )
+
+MEASURE _Measures[Page Views PYTD] =
+CALCULATE(
+    [Page Views YTD],
+    SAMEPERIODLASTYEAR( DateTable[Date] )
+)
+
+MEASURE _Measures[Page Views YoY % Change] =
+DIVIDE(
+    [Page Views YTD] - [Page Views PYTD],
+    [Page Views PYTD],
+    BLANK()
+)
+
+MEASURE _Measures[Active Users 7D Rolling] =
+CALCULATE(
+    [Total Active Users],
+    DateTable[IsLast7Days] = TRUE()
+)
+
+MEASURE _Measures[Active Users 30D Rolling] =
+CALCULATE(
+    [Total Active Users],
+    DateTable[IsLast30Days] = TRUE()
+)
+
+MEASURE _Measures[Likes 30D Rolling] =
+CALCULATE(
+    [Total Likes],
+    DateTable[IsLast30Days] = TRUE()
+)
+
+// ─────────────────────────────────────────────────────────────
+// SECTION 7 – CARD / SUMMARY FORMATTING HELPERS  (Display Folder: _Format)
+// ─────────────────────────────────────────────────────────────
+
+MEASURE _Measures[Views Label] =
+VAR v = [Total Page Views]
+RETURN
+    SWITCH(
+        TRUE(),
+        v >= 1000000, FORMAT( v / 1000000, "0.0" ) & "M",
+        v >= 1000,    FORMAT( v / 1000,    "0.0" ) & "K",
+        FORMAT( v, "0" )
+    )
+
+MEASURE _Measures[Engagement Rate Label] =
+FORMAT( [Engagement Rate], "0.0%" )
+
+MEASURE _Measures[MoM Change Label] =
+VAR pct = [Page Views MoM % Change]
+RETURN
+    IF( ISBLANK(pct), "N/A",
+        (IF( pct >= 0, "▲ ", "▼ ")) & FORMAT( ABS(pct), "0.0%" )
+    )
+
+EVALUATE { 1 }

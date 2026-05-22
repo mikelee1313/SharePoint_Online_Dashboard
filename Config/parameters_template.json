@@ -1,0 +1,91 @@
+{
+  "_comment": "Contoso News Online – Power BI Template Parameters. Fill in all YOUR-* values before use.",
+  "_security": "NEVER commit this file to source control. Add Config/app_credentials.json to .gitignore.",
+
+  "TenantId":    "9cfc42cb-51da-4055-87e9-b20a170b6ba3",
+  "TenantName":  "m365cpi13246019",
+  "ClientId":    "abc64618-283f-47ba-a185-50d935d51d57",
+
+  "HubSiteUrl":  "https://m365cpi13246019.sharepoint.com/sites/CommunicationSite1",
+
+  "ReportPeriod": "D30",
+  "_ReportPeriodOptions": ["D7", "D30", "D90", "D180"],
+
+  "SpokeUrls": [
+    "https://m365cpi13246019.sharepoint.com/sites/TestingGroup",
+    "https://m365cpi13246019.sharepoint.com/sites/willdirectaccessto1file"
+  ],
+
+  "KeywordsToTrack": [
+    "benefits",
+    "policy",
+    "announcement",
+    "leadership",
+    "technology",
+    "compliance",
+    "diversity",
+    "community",
+    "recognition",
+    "strategy"
+  ],
+
+  "ManagedProperties": {
+    "_note": "Map these to actual crawled managed property names in SharePoint Admin → Search",
+    "TaxonomyTags":   "owstaxIdMetadataAllTagsInfo",
+    "CustomMetadata1": "RefinableString00",
+    "CustomMetadata2": "RefinableString01",
+    "LifetimeViews":  "ViewsLifeTime",
+    "RecentViews":    "ViewsRecent"
+  },
+
+  "PowerBI": {
+    "GraphBaseUrl":         "https://graph.microsoft.com/v1.0",
+    "SharePointApiVersion": "application/json;odata=nometadata",
+    "RefreshFrequency":     "Daily",
+    "RefreshTime":          "06:00 EST",
+    "DataLatencyHours":     48
+  },
+
+  "ReportPages": [
+    {
+      "PageNumber": 1,
+      "Name": "Executive Summary",
+      "KeyVisuals": ["KPI cards", "Site views trend line", "Top 5 sites bar", "Active users gauge"]
+    },
+    {
+      "PageNumber": 2,
+      "Name": "Site Overview",
+      "KeyVisuals": ["Matrix: site x metrics", "Map (city distribution)", "Storage utilization chart"]
+    },
+    {
+      "PageNumber": 3,
+      "Name": "Hub & Spoke Breakdown",
+      "KeyVisuals": ["Hierarchy treemap", "Spoke comparison bar", "Drillthrough: hub → spoke → page"]
+    },
+    {
+      "PageNumber": 4,
+      "Name": "Page & Document Analytics",
+      "KeyVisuals": ["Top pages table", "Views over time area chart", "Content type donut"]
+    },
+    {
+      "PageNumber": 5,
+      "Name": "Content Metadata / Keywords",
+      "KeyVisuals": ["Keyword word cloud", "Views by keyword bar", "Taxonomy tag filter"]
+    },
+    {
+      "PageNumber": 6,
+      "Name": "User Demographics",
+      "KeyVisuals": ["Active users by department bar", "City/location map", "Activity heatmap by day/hour"]
+    },
+    {
+      "PageNumber": 7,
+      "Name": "Engagement (Likes & Shares)",
+      "KeyVisuals": ["Top liked pages table", "Engagement tier donut", "Likes trend line", "Comments trend"]
+    },
+    {
+      "PageNumber": 8,
+      "Name": "Date Range Slicer",
+      "KeyVisuals": ["Relative date slicer", "Custom range slicer", "Period comparison toggle"]
+    }
+  ]
+}
