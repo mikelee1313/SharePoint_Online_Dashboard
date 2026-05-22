@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=1400" />
+<title>Contoso News Online – SharePoint Analytics</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
+  body { background: #0D1B2A; color: #fff; width: 1366px; }
+
+  /* ── Header ── */
+  .header {
+    background: linear-gradient(90deg, #0D1B2A 0%, #1B3A5C 100%);
+    border-bottom: 2px solid #4C9BE8;
+    padding: 10px 20px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .header h1 { font-size: 20px; font-weight: 600; color: #fff; letter-spacing: .5px; }
+  .header-right { display: flex; align-items: center; gap: 20px; }
+  .header-date { font-size: 11px; color: #8EB4D8; }
+  .logo-box {
+    background: #112233; border: 1px solid #1E3A5F; border-radius: 6px;
+    padding: 6px 14px; font-size: 11px; color: #8EB4D8; text-align: center; line-height: 1.4;
+  }
+
+  /* ── Page tabs ── */
+  .tabs {
+    background: #0A1520; display: flex; gap: 2px; padding: 0 16px;
+    border-bottom: 1px solid #1E3A5F;
+  }
+  .tab {
+    padding: 7px 16px; font-size: 11px; cursor: pointer; color: #8EB4D8;
+    border-bottom: 2px solid transparent;
+  }
+  .tab.active { color: #4C9BE8; border-bottom-color: #4C9BE8; background: #112233; }
+
+  /* ── Layout ── */
+  .body { display: flex; height: calc(100vh - 74px); min-height: 650px; }
+
+  /* ── Left slicer panel ── */
+  .sidebar {
+    width: 160px; flex-shrink: 0;
+    background: #112233; border-right: 1px solid #1E3A5F;
+    padding: 14px 10px; display: flex; flex-direction: column; gap: 6px;
+  }
+  .sidebar-label { font-size: 10px; color: #8EB4D8; text-transform: uppercase; letter-spacing: .8px; margin-bottom: 4px; }
+  .slicer-item {
+    padding: 6px 10px; border-radius: 4px; font-size: 11px; cursor: pointer;
+    color: #CCCCCC; border: 1px solid transparent;
+  }
+  .slicer-item.active {
+    background: #4C9BE8; color: #fff; font-weight: 600;
+  }
+  .slicer-item:not(.active):hover { background: #1E3A5F; }
+  .sidebar-divider { border: none; border-top: 1px solid #1E3A5F; margin: 8px 0; }
+
+  /* ── Main canvas ── */
+  .canvas { flex: 1; padding: 14px; display: flex; flex-direction: column; gap: 12px; overflow: hidden; }
+
+  /* ── KPI cards row ── */
+  .kpi-row { display: flex; gap: 12px; flex-shrink: 0; }
+  .kpi-card {
+    flex: 1; background: #112233; border: 1px solid #1E3A5F; border-radius: 6px;
+    padding: 14px 16px; position: relative; overflow: hidden;
+  }
+  .kpi-card::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+  }
+  .kpi-card.blue::before   { background: #4C9BE8; }
+  .kpi-card.green::before  { background: #2ECC71; }
+  .kpi-card.purple::before { background: #9B59B6; }
+  .kpi-card.orange::before { background: #E67E22; }
+  .kpi-label { font-size: 10px; color: #8EB4D8; text-transform: uppercase; letter-spacing: .6px; margin-bottom: 6px; }
+  .kpi-value { font-size: 32px; font-weight: 300; color: #fff; line-height: 1; }
+  .kpi-sub { font-size: 11px; color: #8EB4D8; margin-top: 4px; }
+  .kpi-badge {
+    display: inline-block; padding: 2px 6px; border-radius: 3px; font-size: 10px; font-weight: 600; margin-top: 6px;
+  }
+  .kpi-badge.up   { background: rgba(46,204,113,.2); color: #2ECC71; }
+  .kpi-badge.down { background: rgba(231,76,60,.2);  color: #E74C3C; }
+
+  /* ── Middle row ── */
+  .mid-row { display: flex; gap: 12px; flex: 1; min-height: 0; }
+
+  /* ── Chart card ── */
+  .chart-card {
+    background: #112233; border: 1px solid #1E3A5F; border-radius: 6px;
+    padding: 12px 14px; display: flex; flex-direction: column;
+  }
+  .chart-title { font-size: 11px; color: #8EB4D8; margin-bottom: 10px; text-transform: uppercase; letter-spacing: .5px; }
+
+  /* ── Trend chart ── */
+  .trend-chart { flex: 1; min-height: 0; }
+  .trend-wrap { position: relative; height: 100%; display: flex; flex-direction: column; justify-content: flex-end; }
+  .trend-line-label { font-size: 9px; color: #9B59B6; position: absolute; top: 2px; left: 4px; }
+
+  .bars-container {
+    display: flex; align-items: flex-end; gap: 3px;
+    height: 140px; padding-bottom: 20px; position: relative;
+  }
+  .bar-wrap { display: flex; flex-direction: column; align-items: center; flex: 1; }
+  .bar {
+    width: 100%; background: #4C9BE8; border-radius: 2px 2px 0 0;
+    position: relative; transition: opacity .2s;
+  }
+  .bar:hover { opacity: .8; }
+  .bar-val { font-size: 8px; color: #8EB4D8; margin-bottom: 2px; }
+  .bar-lbl { font-size: 8px; color: #6C7A8A; margin-top: 4px; white-space: nowrap; }
+
+  /* SVG line overlay */
+  .trend-svg { position: absolute; top: 0; left: 0; width: 100%; height: 120px; pointer-events: none; }
+
+  /* ── Sites bar chart ── */
+  .sites-chart { width: 320px; flex-shrink: 0; }
+  .hbar-row { display: flex; align-items: center; gap: 8px; margin-bottom: 7px; }
+  .hbar-label { font-size: 10px; color: #CCCCCC; width: 110px; text-align: right; flex-shrink: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .hbar-track { flex: 1; height: 16px; background: #0D1B2A; border-radius: 2px; overflow: hidden; }
+  .hbar-fill { height: 100%; border-radius: 2px; display: flex; align-items: center; padding-left: 6px; }
+  .hbar-val { font-size: 9px; color: #fff; font-weight: 600; }
+
+  /* ── Bottom row ── */
+  .bot-row { display: flex; gap: 12px; flex-shrink: 0; height: 190px; }
+
+  /* ── Top pages table ── */
+  .pages-table { flex: 2; }
+  table { width: 100%; border-collapse: collapse; font-size: 10px; }
+  thead th {
+    text-align: left; padding: 5px 8px; color: #8EB4D8;
+    border-bottom: 1px solid #1E3A5F; font-weight: 600; font-size: 9px; text-transform: uppercase;
+  }
+  tbody tr { border-bottom: 1px solid #0D1B2A; }
+  tbody tr:nth-child(even) { background: rgba(255,255,255,.02); }
+  tbody td { padding: 5px 8px; color: #CCCCCC; }
+  .pill {
+    display: inline-block; padding: 1px 6px; border-radius: 10px; font-size: 9px;
+  }
+  .pill-page { background: rgba(76,155,232,.2); color: #4C9BE8; }
+  .pill-doc  { background: rgba(155,89,182,.2); color: #9B59B6; }
+
+  /* ── Donut chart ── */
+  .donut-card { width: 200px; flex-shrink: 0; }
+  .donut-wrap { display: flex; flex-direction: column; align-items: center; gap: 8px; margin-top: 4px; }
+  .donut-legend { width: 100%; }
+  .legend-row { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; font-size: 10px; color: #CCCCCC; }
+  .legend-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .legend-pct { margin-left: auto; font-weight: 600; }
+
+  /* ── Demographics ── */
+  .demo-card { flex: 1; }
+
+  /* ── Engagement sparklines ── */
+  .engage-card { width: 220px; flex-shrink: 0; }
+  .engage-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; padding-bottom: 8px; border-bottom: 1px solid #1E3A5F; }
+  .engage-metric { font-size: 10px; color: #8EB4D8; }
+  .engage-val { font-size: 20px; font-weight: 300; color: #fff; }
+  .engage-icon { font-size: 18px; }
+</style>
+</head>
+<body>
+
+<!-- ═══ HEADER ═══ -->
+<div class="header">
+  <h1>📊 Contoso News Online &nbsp;|&nbsp; SharePoint Analytics</h1>
+  <div class="header-right">
+    <span class="header-date">Last refreshed: May 22, 2026 &nbsp;·&nbsp; Period: Last 30 Days</span>
+    <div class="logo-box">INSERT<br>COMPANY<br>LOGO</div>
+  </div>
+</div>
+
+<!-- ═══ PAGE TABS ═══ -->
+<div class="tabs">
+  <div class="tab active">Executive Summary</div>
+  <div class="tab">Site Overview</div>
+  <div class="tab">Hub &amp; Spoke</div>
+  <div class="tab">Page Analytics</div>
+  <div class="tab">Keywords</div>
+  <div class="tab">Demographics</div>
+  <div class="tab">Engagement</div>
+</div>
+
+<!-- ═══ BODY ═══ -->
+<div class="body">
+
+  <!-- ── SIDEBAR SLICER ── -->
+  <div class="sidebar">
+    <div class="sidebar-label">Filter by Site</div>
+    <div class="slicer-item active">All Sites</div>
+    <div class="slicer-item">Hub – News Online</div>
+    <div class="slicer-item">Finance</div>
+    <div class="slicer-item">HR</div>
+    <div class="slicer-item">Legal</div>
+    <div class="slicer-item">Operations</div>
+    <div class="slicer-item">Technology</div>
+    <div class="slicer-item">Marketing</div>
+    <hr class="sidebar-divider" />
+    <div class="sidebar-label">Site Type</div>
+    <div class="slicer-item active">All</div>
+    <div class="slicer-item">Hub</div>
+    <div class="slicer-item">Spoke</div>
+  </div>
+
+  <!-- ── MAIN CANVAS ── -->
+  <div class="canvas">
+
+    <!-- KPI CARDS -->
+    <div class="kpi-row">
+      <div class="kpi-card blue">
+        <div class="kpi-label">Total Page Views</div>
+        <div class="kpi-value">84,210</div>
+        <div class="kpi-sub">Across all sites · 30 days</div>
+        <div class="kpi-badge up">▲ 12.4% vs prior period</div>
+      </div>
+      <div class="kpi-card green">
+        <div class="kpi-label">Active Users</div>
+        <div class="kpi-value">1,847</div>
+        <div class="kpi-sub">Unique visitors · 30 days</div>
+        <div class="kpi-badge up">▲ 8.1% MoM</div>
+      </div>
+      <div class="kpi-card purple">
+        <div class="kpi-label">Engagement Rate</div>
+        <div class="kpi-value">34.7%</div>
+        <div class="kpi-sub">Pages with ≥1 reaction</div>
+        <div class="kpi-badge down">▼ 2.3% MoM</div>
+      </div>
+      <div class="kpi-card orange">
+        <div class="kpi-label">Active Sites</div>
+        <div class="kpi-value">7 / 8</div>
+        <div class="kpi-sub">Sites with activity this period</div>
+        <div class="kpi-badge up">1 site stale (&gt;30 days)</div>
+      </div>
+    </div>
+
+    <!-- MID ROW: Trend chart + Sites bar -->
+    <div class="mid-row">
+
+      <!-- Trend chart -->
+      <div class="chart-card trend-chart" style="flex:1">
+        <div class="chart-title">Page Views Trend &nbsp;·&nbsp; Daily &nbsp;
+          <span style="color:#4C9BE8;font-weight:600">■</span> Views &nbsp;
+          <span style="color:#9B59B6;font-weight:600">—</span> Active Users
+        </div>
+        <div class="trend-wrap">
+          <div class="bars-container" id="trendBars">
+            <!-- bars injected by JS -->
+          </div>
+          <svg class="trend-svg" id="trendSvg" viewBox="0 0 800 120" preserveAspectRatio="none"></svg>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:9px;color:#6C7A8A;margin-top:2px;padding:0 4px">
+          <span>Apr 22</span><span>Apr 29</span><span>May 6</span><span>May 13</span><span>May 20</span>
+        </div>
+      </div>
+
+      <!-- Top sites horizontal bar -->
+      <div class="chart-card sites-chart">
+        <div class="chart-title">Top Sites by Page Views</div>
+        <div id="siteBars"></div>
+      </div>
+
+    </div>
+
+    <!-- BOTTOM ROW: Top pages + Donut + Engage -->
+    <div class="bot-row">
+
+      <!-- Top pages table -->
+      <div class="chart-card pages-table">
+        <div class="chart-title">Top Pages &amp; Documents</div>
+        <table>
+          <thead>
+            <tr>
+              <th>Page Title</th>
+              <th>Site</th>
+              <th>Type</th>
+              <th style="text-align:right">Views</th>
+              <th style="text-align:right">Likes</th>
+              <th>Last Modified</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td>Q2 Company Update</td><td>News Online Hub</td><td><span class="pill pill-page">Page</span></td><td style="text-align:right;color:#4C9BE8;font-weight:600">4,821</td><td style="text-align:right">142</td><td>May 20, 2026</td></tr>
+            <tr><td>Benefits Open Enrollment</td><td>HR</td><td><span class="pill pill-page">Page</span></td><td style="text-align:right;color:#4C9BE8;font-weight:600">3,204</td><td style="text-align:right">87</td><td>May 18, 2026</td></tr>
+            <tr><td>IT Security Policy 2026</td><td>Operations</td><td><span class="pill pill-doc">Doc</span></td><td style="text-align:right;color:#4C9BE8;font-weight:600">2,918</td><td style="text-align:right">23</td><td>May 15, 2026</td></tr>
+            <tr><td>Leadership Town Hall Recap</td><td>News Online Hub</td><td><span class="pill pill-page">Page</span></td><td style="text-align:right;color:#4C9BE8;font-weight:600">2,650</td><td style="text-align:right">201</td><td>May 12, 2026</td></tr>
+            <tr><td>Tech Stack Roadmap FY26</td><td>Technology</td><td><span class="pill pill-doc">Doc</span></td><td style="text-align:right;color:#4C9BE8;font-weight:600">1,977</td><td style="text-align:right">56</td><td>May 10, 2026</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Donut -->
+      <div class="chart-card donut-card">
+        <div class="chart-title">Hub vs Spoke Views</div>
+        <div class="donut-wrap">
+          <svg width="100" height="100" viewBox="0 0 100 100">
+            <!-- Hub: 58% = 209deg, stroke-dasharray trick -->
+            <circle cx="50" cy="50" r="38" fill="none" stroke="#0D1B2A" stroke-width="18"/>
+            <circle cx="50" cy="50" r="38" fill="none" stroke="#4C9BE8" stroke-width="18"
+              stroke-dasharray="138 101" stroke-dashoffset="25" transform="rotate(-90 50 50)"/>
+            <circle cx="50" cy="50" r="38" fill="none" stroke="#9B59B6" stroke-width="18"
+              stroke-dasharray="101 138" stroke-dashoffset="-113" transform="rotate(-90 50 50)"/>
+            <text x="50" y="46" text-anchor="middle" fill="#fff" font-size="13" font-family="Segoe UI" font-weight="300">58%</text>
+            <text x="50" y="58" text-anchor="middle" fill="#8EB4D8" font-size="8" font-family="Segoe UI">Hub</text>
+          </svg>
+          <div class="donut-legend">
+            <div class="legend-row"><div class="legend-dot" style="background:#4C9BE8"></div>Hub <span class="legend-pct" style="color:#4C9BE8">58%</span></div>
+            <div class="legend-row"><div class="legend-dot" style="background:#9B59B6"></div>Spokes <span class="legend-pct" style="color:#9B59B6">42%</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Engagement summary -->
+      <div class="chart-card engage-card">
+        <div class="chart-title">Engagement Snapshot</div>
+        <div class="engage-row">
+          <div><div class="engage-metric">Total Likes</div><div class="engage-val">3,841</div></div>
+          <div class="engage-icon">👍</div>
+        </div>
+        <div class="engage-row">
+          <div><div class="engage-metric">Total Comments</div><div class="engage-val">512</div></div>
+          <div class="engage-icon">💬</div>
+        </div>
+        <div style="margin-top:6px">
+          <div style="font-size:9px;color:#8EB4D8;margin-bottom:6px">ENGAGEMENT TIER SPLIT</div>
+          <div style="display:flex;gap:4px;align-items:flex-end;height:40px">
+            <div style="display:flex;flex-direction:column;align-items:center;flex:1">
+              <div style="font-size:8px;color:#2ECC71">38%</div>
+              <div style="width:100%;background:#2ECC71;height:28px;border-radius:2px 2px 0 0"></div>
+              <div style="font-size:8px;color:#6C7A8A">High</div>
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:center;flex:1">
+              <div style="font-size:8px;color:#F39C12">29%</div>
+              <div style="width:100%;background:#F39C12;height:21px;border-radius:2px 2px 0 0"></div>
+              <div style="font-size:8px;color:#6C7A8A">Med</div>
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:center;flex:1">
+              <div style="font-size:8px;color:#E74C3C">18%</div>
+              <div style="width:100%;background:#E74C3C;height:13px;border-radius:2px 2px 0 0"></div>
+              <div style="font-size:8px;color:#6C7A8A">Low</div>
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:center;flex:1">
+              <div style="font-size:8px;color:#6C7A8A">15%</div>
+              <div style="width:100%;background:#3A4A5A;height:11px;border-radius:2px 2px 0 0"></div>
+              <div style="font-size:8px;color:#6C7A8A">None</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div><!-- end canvas -->
+</div><!-- end body -->
+
+<script>
+// ── Trend bars ──────────────────────────────────────────────────────────────
+const viewData = [1820,2100,1650,2300,2800,1900,2400,2200,2600,3100,2400,2700,3200,2100,2500,
+                  2900,2400,2100,2700,3000,2600,2800,3100,2900,3400,2700,3100,2800,3200,2600];
+const userLine = [62,70,55,78,90,64,82,74,88,100,80,91,104,71,85,
+                  95,82,70,90,98,87,94,102,96,110,88,100,93,104,86];
+const maxV = Math.max(...viewData);
+const container = document.getElementById('trendBars');
+viewData.forEach((v, i) => {
+  const wrap = document.createElement('div');
+  wrap.className = 'bar-wrap';
+  const pct = Math.round(v / maxV * 120);
+  wrap.innerHTML = `<div class="bar" style="height:${pct}px"></div>`;
+  container.appendChild(wrap);
+});
+
+// SVG line for active users
+const svg = document.getElementById('trendSvg');
+const maxU = Math.max(...userLine);
+const n = userLine.length;
+const pts = userLine.map((u, i) => {
+  const x = (i / (n - 1)) * 800;
+  const y = 115 - (u / maxU) * 110;
+  return `${x},${y}`;
+}).join(' ');
+svg.innerHTML = `<polyline points="${pts}" fill="none" stroke="#9B59B6" stroke-width="2" stroke-dasharray="6 3" opacity="0.9"/>
+  ${userLine.map((u, i) => {
+    const x = (i / (n - 1)) * 800;
+    const y = 115 - (u / maxU) * 110;
+    return `<circle cx="${x}" cy="${y}" r="2.5" fill="#9B59B6" opacity="0.9"/>`;
+  }).join('')}`;
+
+// ── Site bars ──────────────────────────────────────────────────────────────
+const sites = [
+  { name: 'News Online Hub', views: 28400, color: '#4C9BE8' },
+  { name: 'HR',              views: 14200, color: '#2ECC71' },
+  { name: 'Technology',      views: 11800, color: '#9B59B6' },
+  { name: 'Operations',      views: 9600,  color: '#E67E22' },
+  { name: 'Finance',         views: 8200,  color: '#F39C12' },
+  { name: 'Marketing',       views: 7100,  color: '#1ABC9C' },
+  { name: 'Legal',           views: 4900,  color: '#E74C3C' },
+];
+const maxS = sites[0].views;
+const siteContainer = document.getElementById('siteBars');
+sites.forEach(s => {
+  const pct = Math.round(s.views / maxS * 100);
+  siteContainer.innerHTML += `
+    <div class="hbar-row">
+      <div class="hbar-label" title="${s.name}">${s.name}</div>
+      <div class="hbar-track">
+        <div class="hbar-fill" style="width:${pct}%;background:${s.color}">
+          <span class="hbar-val">${s.views.toLocaleString()}</span>
+        </div>
+      </div>
+    </div>`;
+});
+</script>
+</body>
+</html>
